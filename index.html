@@ -82,6 +82,7 @@
                 destination.hostname === 'script.google.com' &&
                 destination.pathname.includes('/macros/s/')
               ) {
+                alert('読み取り直前の番号：' + decodedText);
                 destination.searchParams.set('barcode', decodedText);
 alert('読み取り番号：' + decodedText + '\n戻り先：' + destination.toString());
 location.href = destination.toString();
