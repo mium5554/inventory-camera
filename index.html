@@ -83,7 +83,8 @@
                 destination.pathname.includes('/macros/s/')
               ) {
                 destination.searchParams.set('barcode', decodedText);
-                location.href = destination.toString();
+alert('読み取り番号：' + decodedText + '\n戻り先：' + destination.toString());
+location.href = destination.toString();
                 return;
               }
             }
