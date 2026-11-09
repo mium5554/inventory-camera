@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>バーコード読み取り</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    h1 { font-size: 24px; }
+    #reader {
+      width: 100%;
+      max-width: 400px;
+      margin: 20px auto;
+    }
+    button {
+      font-size: 18px;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 8px;
+      background: #2878d0;
+      color: white;
+    }
+    #message {
+      margin-top: 20px;
+      overflow-wrap: anywhere;
+    }
+  </style>
+</head>
+<body>
+  <h1>バーコード読み取り</h1>
+  <p>商品バーコードをカメラに映してください。</p>
+
+  <div id="reader"></div>
+  <button id="startButton" onclick="startScanner()">カメラを起動</button>
+  <p id="message">カメラを起動してください。</p>
+
+  <script>
+    let scanner = null;
+    let scanning = false;
+
+    async function startScanner() {
+      const message = document.getElementById('message');
+
+      if (typeof Html5Qrcode === 'undefined') {
+        message.textContent = '読み取り機能を読み込めませんでした。';
+        return;
+      }
+
+      if (scanning) return;
+
+      try {
+        scanner = new Html5Qrcode('reader');
+
+        await scanner.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: { width: 250, height: 150 } },
+          async function(decodedText) {
+            if (!scanning) return;
+            scanning = false;
+
+            message.textContent = '読み取り成功！商品コード：' + decodedText;
+
+            await scanner.stop();
+
+            const params = new URLSearchParams(window.location.search);
+            const returnTo = params.get('returnTo');
+
+            if (returnTo) {
+              const destination = new URL(returnTo);
+
+              if (destination.hostname !== 'script.google.com') {
+                message.textContent = '戻り先URLを確認できません。';
+                return;
+              }
+
+              destination.searchParams.set('barcode', decodedText);
+              window.location.href = destination.toString();
+            }
+          }
+        );
+
+        scanning = true;
+        message.textContent = 'バーコードをカメラに映してください。';
+
+      } catch (error) {
+        scanning = false;
+        message.textContent = 'カメラを起動できませんでした：' + error;
+      }
+    }
+  </script>
+</body>
+</html>
