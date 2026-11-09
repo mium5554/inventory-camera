@@ -8,37 +8,39 @@
   <style>
     body {
       font-family: sans-serif;
-      text-align: center;
       padding: 20px;
+      text-align: center;
       background: #f5f5f5;
     }
-    h1 { font-size: 24px; }
+    h2 { margin-top: 30px; }
+    button {
+      padding: 14px 24px;
+      font-size: 17px;
+      border: none;
+      border-radius: 8px;
+      background: #2563eb;
+      color: white;
+      margin: 10px;
+    }
     #reader {
       width: 100%;
       max-width: 400px;
       margin: 20px auto;
     }
-    button {
-      font-size: 18px;
-      padding: 14px 24px;
-      border: none;
-      border-radius: 8px;
-      background: #2878d0;
-      color: white;
-    }
     #message {
-      margin-top: 20px;
+      font-size: 16px;
       overflow-wrap: anywhere;
     }
   </style>
 </head>
 <body>
-  <h1>バーコード読み取り</h1>
+  <h2>📷 バーコード読み取り</h2>
   <p>商品バーコードをカメラに映してください。</p>
 
   <div id="reader"></div>
-  <button id="startButton" onclick="startScanner()">カメラを起動</button>
-  <p id="message">カメラを起動してください。</p>
+  <p id="message">「読み取り開始」を押してください。</p>
+  <button id="startButton" onclick="startScanner()">読み取り開始</button>
+  <button id="stopButton" onclick="stopScanner()">停止</button>
 
   <script>
     let scanner = null;
@@ -47,15 +49,14 @@
     async function startScanner() {
       const message = document.getElementById('message');
 
-      if (typeof Html5Qrcode === 'undefined') {
-        message.textContent = '読み取り機能を読み込めませんでした。';
-        return;
-      }
-
-      if (scanning) return;
-
       try {
-        scanner = new Html5Qrcode('reader');
+        if (typeof Html5Qrcode === 'undefined') {
+          throw new Error('読み取り機能を読み込めませんでした');
+        }
+
+        if (!scanner) {
+          scanner = new Html5Qrcode('reader');
+        }
 
         await scanner.start(
           { facingMode: 'environment' },
@@ -64,24 +65,30 @@
             if (!scanning) return;
             scanning = false;
 
-            message.textContent = '読み取り成功！商品コード：' + decodedText;
+            message.textContent = '読み取り成功！アプリに戻ります…';
 
-            await scanner.stop();
+            try {
+              await scanner.stop();
+            } catch (e) {}
 
-            const params = new URLSearchParams(window.location.search);
-            const returnTo = params.get('returnTo');
+            const params = new URLSearchParams(location.search);
+            const returnUrl = params.get('return');
 
-            if (returnTo) {
-              const destination = new URL(returnTo);
+            if (returnUrl) {
+              const destination = new URL(returnUrl);
 
-              if (destination.hostname !== 'script.google.com') {
-                message.textContent = '戻り先URLを確認できません。';
+              if (
+                destination.protocol === 'https:' &&
+                destination.hostname === 'script.google.com' &&
+                destination.pathname.includes('/macros/s/')
+              ) {
+                destination.searchParams.set('barcode', decodedText);
+                location.href = destination.toString();
                 return;
               }
-
-              destination.searchParams.set('barcode', decodedText);
-              window.location.href = destination.toString();
             }
+
+            message.textContent = '読み取ったバーコード：' + decodedText;
           }
         );
 
@@ -90,8 +97,18 @@
 
       } catch (error) {
         scanning = false;
-        message.textContent = 'カメラを起動できませんでした：' + error;
+        message.textContent = 'カメラエラー：' + error.message;
       }
+    }
+
+    async function stopScanner() {
+      scanning = false;
+
+      if (scanner && scanner.isScanning) {
+        await scanner.stop();
+      }
+
+      document.getElementById('message').textContent = '読み取りを停止しました。';
     }
   </script>
 </body>
