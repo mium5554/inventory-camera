@@ -55,12 +55,16 @@
         }
 
         if (!scanner) {
-          scanner = new Html5Qrcode('reader');
+          scanner = new Html5Qrcode('reader', {
+  formatsToSupport: [
+    Html5QrcodeSupportedFormats.CODE_128
+  ]
+});
         }
 
         await scanner.start(
           { facingMode: 'environment' },
-          { fps: 10, qrbox: { width: 250, height: 150 } },
+          { fps: 15, qrbox: { width: 300, height: 200 } },
           async function(decodedText) {
             if (!scanning) return;
             scanning = false;
@@ -82,7 +86,7 @@
                 destination.hostname === 'script.google.com' &&
                 destination.pathname.includes('/macros/s/')
               ) {
-                alert('読み取り直前の番号：' + decodedText);
+                
                 destination.searchParams.set('barcode', decodedText);
 alert('読み取り番号：' + decodedText + '\n戻り先：' + destination.toString());
 location.href = destination.toString();
